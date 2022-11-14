@@ -1,0 +1,6 @@
+image: redis/redis-stack-server:latest
+password: mypassword
+pgmaster:
+
+pgslave:
+  replicas: 1

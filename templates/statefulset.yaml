@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ .Release.Name }}-master
+  name: {{ .Release.Name }}-master
+spec:
+  serviceName: {{ .Release.Name }}-master-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-master
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-master
+    spec:
+      containers:
+      - image: redis/redis-stack-server:latest
+        name: {{ .Release.Name }}-master
+        command: ["redis-server"]
+        args: ["--requirepass ", "{{ .Values.password }}"]
+        volumeMounts:
+          - mountPath: "redis_data"
+            name: {{ .Release.Name }}-master-storage
+            subPath: data
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Release.Name }}-master-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ .Release.Name }}-slave
+  name: {{ .Release.Name }}-slave
+spec:
+  serviceName: {{ .Release.Name }}-slave-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-slave
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-slave
+    spec:
+      containers:
+      - image: redis/redis-stack-server:latest
+        name: {{ .Release.Name }}-slave
+        command: ["redis-server"]
+        args: ["--slaveof","{{ .Release.Name }}-master-svc","6379","--masterauth","{{ .Values.password }}","--requirepass","{{ .Values.password }}"]
+        volumeMounts:
+          - mountPath: "redis_data"
+            name: {{ .Release.Name }}-slave-storage
+            subPath: data
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Release.Name }}-slave-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
